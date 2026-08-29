@@ -12,5 +12,15 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./Backend/dbfiles:/docker-entrypoint-initdb.d
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+
 volumes:
   db_data:
