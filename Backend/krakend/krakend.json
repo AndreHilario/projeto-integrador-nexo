@@ -8,82 +8,110 @@
   "output_encoding": "json",
   "extra_config": {
     "telemetry/logging": {
-      "level": "INFO",
+      "level": "DEBUG",
       "prefix": "[NEXO-GATEWAY]",
       "syslog": false,
       "stdout": true
+    },
+    "security/cors": {
+      "allow_origins": ["http://localhost:8080", "http://localhost:5173"],
+      "allow_methods": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+      "allow_headers": ["Origin", "Authorization", "Content-Type"],
+      "expose_headers": ["Content-Length"],
+      "max_age": "12h"
     }
   },
   "endpoints": [
     {
-      "endpoint": "/api/auth/{path}",
-      "method": "ANY",
-      "backend": [
-        {
-          "url_pattern": "/{path}",
-          "host": ["http://auth-service:3001"]
-        }
-      ]
+      "endpoint": "/api/auth/register",
+      "method": "POST",
+      "backend": [{ "url_pattern": "/register", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "backend": [{ "url_pattern": "/login", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "method": "GET",
+      "input_headers": ["Authorization"],
+      "backend": [{ "url_pattern": "/me", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "method": "PUT",
+      "input_headers": ["Authorization", "Content-Type"],
+      "backend": [{ "url_pattern": "/me", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/profile/candidate",
+      "method": "GET",
+      "input_headers": ["Authorization"],
+      "backend": [{ "url_pattern": "/profile/candidate", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/profile/candidate",
+      "method": "PUT",
+      "input_headers": ["Authorization", "Content-Type"],
+      "backend": [{ "url_pattern": "/profile/candidate", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/profile/company",
+      "method": "GET",
+      "input_headers": ["Authorization"],
+      "backend": [{ "url_pattern": "/profile/company", "host": ["http://auth-service:3001"] }]
+    },
+    {
+      "endpoint": "/api/auth/profile/company",
+      "method": "PUT",
+      "input_headers": ["Authorization", "Content-Type"],
+      "backend": [{ "url_pattern": "/profile/company", "host": ["http://auth-service:3001"] }]
     },
     {
       "endpoint": "/api/jobs",
       "method": "GET",
-      "backend": [
-        {
-          "url_pattern": "/jobs",
-          "host": ["http://jobs-service:3002"]
-        }
-      ]
+      "backend": [{ "url_pattern": "/jobs", "host": ["http://jobs-service:3002"] }]
     },
     {
       "endpoint": "/api/jobs",
       "method": "POST",
-      "backend": [
-        {
-          "url_pattern": "/jobs",
-          "host": ["http://jobs-service:3002"]
-        }
-      ]
+      "backend": [{ "url_pattern": "/jobs", "host": ["http://jobs-service:3002"] }]
     },
     {
-      "endpoint": "/api/jobs/{path}",
-      "method": "ANY",
-      "backend": [
-        {
-          "url_pattern": "/jobs/{path}",
-          "host": ["http://jobs-service:3002"]
-        }
-      ]
+      "endpoint": "/api/jobs/{jobId}",
+      "method": "GET",
+      "backend": [{ "url_pattern": "/jobs/{jobId}", "host": ["http://jobs-service:3002"] }]
+    },
+    {
+      "endpoint": "/api/jobs/{jobId}",
+      "method": "PUT",
+      "backend": [{ "url_pattern": "/jobs/{jobId}", "host": ["http://jobs-service:3002"] }]
+    },
+    {
+      "endpoint": "/api/jobs/{jobId}",
+      "method": "DELETE",
+      "backend": [{ "url_pattern": "/jobs/{jobId}", "host": ["http://jobs-service:3002"] }]
     },
     {
       "endpoint": "/api/applications",
       "method": "GET",
-      "backend": [
-        {
-          "url_pattern": "/applications",
-          "host": ["http://applications-service:3003"]
-        }
-      ]
+      "backend": [{ "url_pattern": "/applications", "host": ["http://applications-service:3003"] }]
     },
     {
       "endpoint": "/api/applications",
       "method": "POST",
-      "backend": [
-        {
-          "url_pattern": "/applications",
-          "host": ["http://applications-service:3003"]
-        }
-      ]
+      "backend": [{ "url_pattern": "/applications", "host": ["http://applications-service:3003"] }]
     },
     {
-      "endpoint": "/api/applications/{path}",
-      "method": "ANY",
-      "backend": [
-        {
-          "url_pattern": "/applications/{path}",
-          "host": ["http://applications-service:3003"]
-        }
-      ]
+      "endpoint": "/api/applications/{applicationId}",
+      "method": "GET",
+      "backend": [{ "url_pattern": "/applications/{applicationId}", "host": ["http://applications-service:3003"] }]
+    },
+    {
+      "endpoint": "/api/applications/{applicationId}",
+      "method": "PUT",
+      "backend": [{ "url_pattern": "/applications/{applicationId}", "host": ["http://applications-service:3003"] }]
     }
   ]
 }
