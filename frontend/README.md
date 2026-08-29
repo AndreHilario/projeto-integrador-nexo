@@ -1,6 +1,6 @@
 # Nexo
 
-MVP de uma plataforma digital de intermediação de vagas e candidatos. O frontend cobre as jornadas de candidato e empresa com dados mockados persistidos em `localStorage`.
+MVP de uma plataforma digital de intermediação de vagas e candidatos. Cadastro, login e perfil (candidato/empresa) são autenticados contra o `auth-service` real (via API Gateway KrakenD); vagas e candidaturas ainda usam dados mockados persistidos em `localStorage`, pois `jobs-service` e `applications-service` ainda não foram implementados.
 
 ## Executando
 
@@ -16,19 +16,21 @@ npm run build
 npm run preview
 ```
 
-## Acessos de demonstração
+## Autenticação
 
-### Candidato
+Login, cadastro e perfil chamam o `auth-service` (Java/Spring Boot) através do API Gateway KrakenD, em `http://localhost:8000/api/auth` por padrão. Para funcionar, é necessário subir `db`, `auth-service` e `krakend` (veja o `docker-compose.yaml` na raiz do projeto):
 
-- E-mail: `lucas@nexo.com`
-- Senha: `123456`
+```bash
+docker compose up -d db auth-service krakend
+```
 
-### Empresa
+O e-mail/senha preenchidos automaticamente na tela de login (`lucas@nexo.com` / `mariana@auroratech.com`, senha `123456`) são apenas um atalho de formulário — como o banco do `auth-service` começa vazio, é preciso criar essas contas pela tela de cadastro antes de conseguir logar com elas (ou usar qualquer outro e-mail/senha cadastrados).
 
-- E-mail: `mariana@auroratech.com`
-- Senha: `123456`
+Para apontar para outra URL do gateway/serviço, defina `VITE_AUTH_API_BASE_URL` (ex.: `.env`):
 
-As credenciais são preenchidas automaticamente ao selecionar o perfil na tela de login.
+```env
+VITE_AUTH_API_BASE_URL=http://localhost:8000/api/auth
+```
 
 ## Fluxos disponíveis
 
@@ -53,14 +55,14 @@ src/
   context/          estado e ações da aplicação
   data/             base inicial mockada
   pages/            telas por jornada
-  services/         providers local e HTTP
+  services/         dataProvider (vagas/candidaturas mock) e cliente do auth-service
   types/            contratos do domínio
   utils/            formatação e rótulos
 ```
 
-## Troca para API real
+## Vagas e candidaturas (ainda mockadas)
 
-Copie `.env.example` para `.env` e altere:
+Vagas e candidaturas continuam usando o `dataProvider` local/HTTP genérico, já que `jobs-service` e `applications-service` ainda não existem. Para trocar essa fonte por uma API própria no futuro, defina em `.env`:
 
 ```env
 VITE_DATA_SOURCE=api
@@ -72,7 +74,7 @@ O provider HTTP está em `src/services/dataProvider.ts`. O contrato atual espera
 - `GET /state` para carregar o estado
 - `PUT /state` para persistir o estado
 
-Essa fronteira pode ser substituída por endpoints de autenticação, vagas, usuários e candidaturas sem alterar os componentes de interface.
+Essa fronteira pode ser substituída por endpoints de vagas e candidaturas sem alterar os componentes de interface.
 
 ## Qualidade
 
