@@ -37,7 +37,7 @@ O nível de log está temporariamente em `DEBUG` (`telemetry/logging.level`) par
 
 ## Status atual
 
-`auth-service` já está implementado e integrado ao `docker-compose.yaml` e ao gateway. `jobs-service` e `applications-service` ainda não possuem implementação nem `Dockerfile`, por isso ainda não foram adicionados ao `docker-compose.yaml`; conforme cada um for implementado e ganhar seu próprio `Dockerfile`, deve ser adicionado ao `docker-compose.yaml` com o nome de host e a porta usados aqui, para que o roteamento funcione.
+`auth-service` e `jobs-service` já estão implementados e integrados ao `docker-compose.yaml` e ao gateway. `applications-service` ainda não possui implementação nem `Dockerfile`, por isso ainda não foi adicionado ao `docker-compose.yaml`; assim que for implementado e ganhar seu próprio `Dockerfile`, deve ser adicionado ao `docker-compose.yaml` com o nome de host e a porta usados aqui, para que o roteamento funcione.
 
 ## Subindo o gateway
 
