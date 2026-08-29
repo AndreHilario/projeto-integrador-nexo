@@ -1,5 +1,5 @@
 import { appConfig } from '../config/app'
-import type { CandidateProfile, CompanyProfile, ExperienceLevel, UserRole, Workplace } from '../types'
+import type { CandidateProfile, CandidateSummary, CompanyProfile, ExperienceLevel, UserRole, Workplace } from '../types'
 
 export interface AuthUser {
   id: string
@@ -36,6 +36,19 @@ export interface CompanyProfileDto {
   city: string | null
   website: string | null
   about: string | null
+}
+
+/** Recorte público do perfil de um candidato, devolvido por GET /candidates/{id} (somente para empresas). */
+export interface CandidateSummaryDto {
+  userId: string
+  name: string
+  city: string | null
+  headline: string | null
+  area: string | null
+  experience: ExperienceLevel | null
+  preferredWorkplace: Workplace | null
+  bio: string | null
+  skills: string[]
 }
 
 class ApiError extends Error {}
@@ -113,6 +126,10 @@ export const authApi = {
       body: JSON.stringify(payload),
     })
   },
+
+  getCandidateSummary(token: string, candidateId: string) {
+    return request<CandidateSummaryDto>(`/candidates/${candidateId}`, { headers: authHeaders(token) })
+  },
 }
 
 export function toCandidateProfile(dto: CandidateProfileDto): CandidateProfile {
@@ -127,6 +144,20 @@ export function toCandidateProfile(dto: CandidateProfileDto): CandidateProfile {
     skills: dto.skills ?? [],
     resumeName: dto.resumeName ?? '',
     bio: dto.bio ?? '',
+  }
+}
+
+export function toCandidateSummary(dto: CandidateSummaryDto): CandidateSummary {
+  return {
+    userId: dto.userId,
+    name: dto.name,
+    city: dto.city ?? '',
+    headline: dto.headline ?? '',
+    area: dto.area ?? '',
+    experience: dto.experience ?? 'Júnior',
+    preferredWorkplace: dto.preferredWorkplace ?? 'Híbrido',
+    bio: dto.bio ?? '',
+    skills: dto.skills ?? [],
   }
 }
 

@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react'
 import type {
+  Application,
   ApplicationStatus,
   CandidateProfile,
   CompanyProfile,
-  Database,
   Job,
   JobInput,
   SessionUser,
@@ -19,18 +19,18 @@ export interface RegistrationInput {
 }
 
 export interface AppContextValue {
-  database: Database
+  token: string | null
   currentUser: SessionUser | null
   loading: boolean
   error: string | null
   login: (email: string, password: string, role: UserRole) => Promise<void>
   register: (input: RegistrationInput) => Promise<void>
   logout: () => void
-  applyToJob: (job: Job) => void
+  applyToJob: (job: Job) => Promise<Application>
   createJob: (input: JobInput) => Promise<Job>
   updateJob: (jobId: string, input: JobInput) => Promise<Job>
   deleteJob: (jobId: string) => Promise<void>
-  setApplicationStatus: (applicationId: string, status: ApplicationStatus) => void
+  setApplicationStatus: (applicationId: string, status: ApplicationStatus) => Promise<Application>
   updateUser: (name: string, profile: CandidateProfile | CompanyProfile) => Promise<void>
 }
 

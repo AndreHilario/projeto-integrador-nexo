@@ -2,20 +2,27 @@ import { ArrowUpRight, BriefcaseBusiness, CalendarDays, Check, Clock3, Inbox } f
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
+import { applicationsApi } from '../../services/applicationsApi'
 import { jobsApi } from '../../services/jobsApi'
-import type { ApplicationStatus, Job } from '../../types'
+import type { Application, ApplicationStatus, Job } from '../../types'
 import { applicationStatusLabel, formatDate, unknownCompanyDisplay } from '../../utils/format'
 
 const stages: ApplicationStatus[] = ['applied', 'screening', 'interview', 'approved']
 
 export function ApplicationsPage() {
-  const { database, currentUser } = useApp()
+  const { token } = useApp()
   const [filter, setFilter] = useState<'all' | 'active' | 'done'>('all')
+  const [myApplications, setMyApplications] = useState<Application[]>([])
   const [jobsById, setJobsById] = useState<Record<string, Job>>({})
-  const applications = useMemo(() => database.applications
-    .filter((item) => item.candidateId === currentUser?.id)
+
+  useEffect(() => {
+    if (!token) return
+    applicationsApi.listMine(token).then(setMyApplications).catch(() => setMyApplications([]))
+  }, [token])
+
+  const applications = useMemo(() => myApplications
     .filter((item) => filter === 'all' || (filter === 'active' ? !['approved', 'rejected'].includes(item.status) : ['approved', 'rejected'].includes(item.status)))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [currentUser?.id, database.applications, filter])
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [myApplications, filter])
 
   useEffect(() => {
     const missingIds = [...new Set(applications.map((item) => item.jobId))].filter((id) => !jobsById[id])
@@ -34,7 +41,7 @@ export function ApplicationsPage() {
     <div className="page-stack narrow-content">
       <section className="page-heading">
         <div><span className="eyebrow">Sua jornada</span><h1>Minhas candidaturas</h1><p>Acompanhe cada etapa e não perca nenhuma atualização.</p></div>
-        <div className="summary-pill"><BriefcaseBusiness size={19} /><span><strong>{database.applications.filter((item) => item.candidateId === currentUser?.id && !['approved', 'rejected'].includes(item.status)).length}</strong> processos ativos</span></div>
+        <div className="summary-pill"><BriefcaseBusiness size={19} /><span><strong>{myApplications.filter((item) => !['approved', 'rejected'].includes(item.status)).length}</strong> processos ativos</span></div>
       </section>
       <div className="segmented compact application-filter">
         <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>Todas</button>
@@ -65,7 +72,7 @@ export function ApplicationsPage() {
                   ))}
                 </div>
               )}
-              <div className="application-footer"><span><CalendarDays size={15} /> Candidatura em {formatDate(application.appliedAt)}</span><span><Clock3 size={15} /> Atualizada em {formatDate(application.updatedAt)}</span><strong>{application.match}% match</strong></div>
+              <div className="application-footer"><span><CalendarDays size={15} /> Candidatura em {formatDate(application.appliedAt)}</span><span><Clock3 size={15} /> Atualizada em {formatDate(application.updatedAt)}</span><strong>{application.matchScore ?? 0}% match</strong></div>
             </article>
           )
         })}

@@ -2,16 +2,19 @@ import { ArrowLeft, Bookmark, BriefcaseBusiness, Building2, Check, CheckCircle2,
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
+import { applicationsApi } from '../../services/applicationsApi'
 import { jobsApi } from '../../services/jobsApi'
-import type { CandidateProfile, Job } from '../../types'
+import type { Application, CandidateProfile, Job } from '../../types'
 import { formatRelativeDate, unknownCompanyDisplay } from '../../utils/format'
+import { computeMatchScore } from '../../utils/match'
 
 export function JobDetailPage() {
   const { jobId } = useParams()
   const navigate = useNavigate()
-  const { database, currentUser, applyToJob } = useApp()
+  const { token, currentUser, applyToJob } = useApp()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
+  const [application, setApplication] = useState<Application | null>(null)
   const [saved, setSaved] = useState(false)
   const [notice, setNotice] = useState(false)
 
@@ -20,17 +23,23 @@ export function JobDetailPage() {
     jobsApi.getById(jobId).then(setJob).catch(() => setJob(null)).finally(() => setLoading(false))
   }, [jobId])
 
-  const application = database.applications.find((item) => item.jobId === jobId && item.candidateId === currentUser?.id)
+  useEffect(() => {
+    if (!jobId || !token || currentUser?.role !== 'candidate') return
+    applicationsApi.listMine(token)
+      .then((items) => setApplication(items.find((item) => item.jobId === jobId) ?? null))
+      .catch(() => setApplication(null))
+  }, [jobId, token, currentUser?.role])
 
   if (loading) return <div className="empty-state surface"><h2>Carregando vaga...</h2></div>
   if (!job) return <div className="empty-state surface"><h2>Vaga não encontrada</h2><button className="secondary-button" onClick={() => navigate('/vagas')}>Voltar para vagas</button></div>
 
   const profile = currentUser?.profile as CandidateProfile
   const matchingSkills = job.skills.filter((skill) => profile.skills.some((item) => item.toLowerCase() === skill.toLowerCase()))
-  const match = application?.match ?? Math.min(98, 70 + matchingSkills.length * 7 + (job.experience === profile.experience ? 7 : 0))
+  const match = application?.matchScore ?? computeMatchScore(job, profile)
 
-  const apply = () => {
-    applyToJob(job)
+  const apply = async () => {
+    const created = await applyToJob(job)
+    setApplication(created)
     setNotice(true)
     window.setTimeout(() => setNotice(false), 3600)
   }

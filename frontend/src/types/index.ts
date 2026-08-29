@@ -33,15 +33,6 @@ export interface CompanyProfile {
   about: string
 }
 
-export interface User {
-  id: string
-  role: UserRole
-  name: string
-  email: string
-  password: string
-  profile: CandidateProfile | CompanyProfile
-}
-
 /** Usuário autenticado via auth-service (sem senha, que nunca trafega além do login). */
 export interface SessionUser {
   id: string
@@ -76,21 +67,28 @@ export interface Job extends JobSummary {
   benefits: string[]
 }
 
+/** Campos devolvidos pelo applications-service (GET/POST/PUT /applications). */
 export interface Application {
   id: string
   jobId: string
   candidateId: string
   status: ApplicationStatus
+  matchScore: number | null
   appliedAt: string
   updatedAt: string
-  match: number
 }
 
-/** Usuários e candidaturas seguem mockados em localStorage, pois applications-service ainda não existe. */
-export interface Database {
-  users: User[]
-  applications: Application[]
-  currentUserId: string | null
+/** Recorte público de candidato exposto pelo auth-service para empresas (ver GET /candidates/{id}). */
+export interface CandidateSummary {
+  userId: string
+  name: string
+  city: string
+  headline: string
+  area: string
+  experience: ExperienceLevel
+  preferredWorkplace: Workplace
+  bio: string
+  skills: string[]
 }
 
 export interface JobInput {

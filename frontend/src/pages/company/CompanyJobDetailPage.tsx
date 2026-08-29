@@ -2,19 +2,23 @@ import { ArrowLeft, CalendarCheck2, CheckCircle2, Download, Edit3, Eye, MapPin, 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
+import { applicationsApi } from '../../services/applicationsApi'
+import { authApi, toCandidateSummary } from '../../services/authApi'
 import { jobsApi, toJobInput } from '../../services/jobsApi'
-import type { ApplicationStatus, CandidateProfile, Job, JobStatus } from '../../types'
+import type { Application, ApplicationStatus, CandidateSummary, Job, JobStatus } from '../../types'
 import { applicationStatusLabel, jobStatusLabel } from '../../utils/format'
 
 export function CompanyJobDetailPage() {
   const { jobId } = useParams()
   const navigate = useNavigate()
-  const { database, currentUser, updateJob, deleteJob, setApplicationStatus } = useApp()
+  const { token, currentUser, updateJob, deleteJob, setApplicationStatus } = useApp()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [notice, setNotice] = useState('')
+  const [applications, setApplications] = useState<Application[]>([])
+  const [candidatesById, setCandidatesById] = useState<Record<string, CandidateSummary>>({})
 
   useEffect(() => {
     if (!jobId) return
@@ -24,20 +28,37 @@ export function CompanyJobDetailPage() {
       .finally(() => setLoading(false))
   }, [jobId, currentUser?.id])
 
-  const candidates = useMemo(() => database.applications
-    .filter((application) => application.jobId === jobId)
-    .map((application) => ({ application, user: database.users.find((user) => user.id === application.candidateId) }))
+  useEffect(() => {
+    if (!jobId || !token) return
+    applicationsApi.listByJob(token, jobId).then(setApplications).catch(() => setApplications([]))
+  }, [jobId, token])
+
+  useEffect(() => {
+    if (!token) return
+    const missingIds = [...new Set(applications.map((item) => item.candidateId))].filter((id) => !candidatesById[id])
+    if (missingIds.length === 0) return
+    Promise.all(missingIds.map((id) => authApi.getCandidateSummary(token, id).then(toCandidateSummary).catch(() => null))).then((results) => {
+      setCandidatesById((current) => {
+        const next = { ...current }
+        results.forEach((candidate, index) => { if (candidate) next[missingIds[index]] = candidate })
+        return next
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applications, token])
+
+  const candidates = useMemo(() => applications
+    .map((application) => ({ application, user: candidatesById[application.candidateId] }))
     .filter((item) => {
-      const text = `${item.user?.name} ${(item.user?.profile as CandidateProfile | undefined)?.skills.join(' ')}`.toLowerCase()
+      const text = `${item.user?.name ?? ''} ${item.user?.skills.join(' ') ?? ''}`.toLowerCase()
       return (!query || text.includes(query.toLowerCase())) && (statusFilter === 'all' || item.application.status === statusFilter)
     })
-    .sort((a, b) => b.application.match - a.application.match), [database.applications, database.users, jobId, query, statusFilter])
+    .sort((a, b) => (b.application.matchScore ?? 0) - (a.application.matchScore ?? 0)), [applications, candidatesById, query, statusFilter])
 
   if (loading) return <div className="empty-state surface"><h2>Carregando vaga...</h2></div>
   if (!job) return <div className="empty-state surface"><h2>Vaga não encontrada</h2><button className="secondary-button" onClick={() => navigate('/empresa')}>Voltar ao painel</button></div>
 
-  const totalApplications = database.applications.filter((item) => item.jobId === job.id)
-  const interviews = totalApplications.filter((item) => item.status === 'interview').length
+  const interviews = applications.filter((item) => item.status === 'interview').length
 
   const flash = (message: string) => {
     setNotice(message)
@@ -56,8 +77,9 @@ export function CompanyJobDetailPage() {
     navigate('/empresa')
   }
 
-  const changeStatus = (status: ApplicationStatus, applicationId: string) => {
-    setApplicationStatus(applicationId, status)
+  const changeStatus = async (status: ApplicationStatus, applicationId: string) => {
+    const updated = await setApplicationStatus(applicationId, status)
+    setApplications((current) => current.map((item) => (item.id === applicationId ? updated : item)))
     flash('Etapa do candidato atualizada.')
   }
 
@@ -69,10 +91,10 @@ export function CompanyJobDetailPage() {
         <div className="company-job-actions"><Link className="secondary-button" to={`/empresa/vagas/${job.id}/editar`}><Edit3 size={17} /> Editar vaga</Link>{job.status === 'active' ? <button className="secondary-button" onClick={() => changeJobStatus('paused')}><PauseCircle size={17} /> Pausar</button> : <button className="secondary-button" onClick={() => changeJobStatus('active')}><PlayCircle size={17} /> Reabrir</button>}<button className="icon-button" aria-label="Excluir vaga" onClick={removeJob}><Trash2 size={19} /></button></div>
       </section>
       <section className="job-kpi-row surface">
-        <div><span className="metric-icon purple"><UsersRound size={19} /></span><span><strong>{totalApplications.length}</strong><small>Candidatos</small></span></div>
+        <div><span className="metric-icon purple"><UsersRound size={19} /></span><span><strong>{applications.length}</strong><small>Candidatos</small></span></div>
         <div><span className="metric-icon blue"><Eye size={19} /></span><span><strong>{job.views}</strong><small>Visualizações</small></span></div>
         <div><span className="metric-icon mint"><CalendarCheck2 size={19} /></span><span><strong>{interviews}</strong><small>Entrevistas</small></span></div>
-        <div><span className="metric-icon orange"><UserRoundCheck size={19} /></span><span><strong>{totalApplications.filter((item) => item.match >= 85).length}</strong><small>Alto match</small></span></div>
+        <div><span className="metric-icon orange"><UserRoundCheck size={19} /></span><span><strong>{applications.filter((item) => (item.matchScore ?? 0) >= 85).length}</strong><small>Alto match</small></span></div>
       </section>
       <section className="candidate-section">
         <div className="list-toolbar candidate-toolbar"><div><span className="eyebrow"><Sparkles size={15} /> Ranking inteligente</span><h2>Candidatos</h2><p>Ordenados pela compatibilidade com os requisitos da vaga.</p></div>{job.status !== 'closed' && <button className="danger-text-button" onClick={() => changeJobStatus('closed')}><XCircle size={17} /> Encerrar vaga</button>}</div>
@@ -80,13 +102,13 @@ export function CompanyJobDetailPage() {
         <div className="candidate-list">
           {candidates.map(({ application, user }, index) => {
             if (!user) return null
-            const profile = user.profile as CandidateProfile
+            const matchScore = application.matchScore ?? 0
             return (
               <article className="candidate-card surface" key={application.id}>
                 <div className="ranking-number">#{index + 1}</div>
                 <div className="candidate-avatar">{user.name.split(' ').map((word) => word[0]).slice(0, 2).join('')}</div>
-                <div className="candidate-info"><div className="candidate-title"><div><h3>{user.name}</h3><p>{profile.headline} · {profile.city}</p></div><span className={`application-badge application-${application.status}`}>{applicationStatusLabel[application.status]}</span></div><div className="candidate-skills">{profile.skills.slice(0, 4).map((skill) => <span key={skill}>{skill}{job.skills.includes(skill) && <CheckCircle2 size={13} />}</span>)}</div><p className="candidate-bio">{profile.bio}</p></div>
-                <div className="candidate-match"><div className="mini-match-ring" style={{ '--match': `${application.match * 3.6}deg` } as React.CSSProperties}><span>{application.match}%</span></div><small>compatível</small></div>
+                <div className="candidate-info"><div className="candidate-title"><div><h3>{user.name}</h3><p>{user.headline} · {user.city}</p></div><span className={`application-badge application-${application.status}`}>{applicationStatusLabel[application.status]}</span></div><div className="candidate-skills">{user.skills.slice(0, 4).map((skill) => <span key={skill}>{skill}{job.skills.includes(skill) && <CheckCircle2 size={13} />}</span>)}</div><p className="candidate-bio">{user.bio}</p></div>
+                <div className="candidate-match"><div className="mini-match-ring" style={{ '--match': `${matchScore * 3.6}deg` } as React.CSSProperties}><span>{matchScore}%</span></div><small>compatível</small></div>
                 <div className="candidate-actions"><button className="secondary-button" onClick={() => flash(`Currículo de ${user.name} pronto para visualização.`)}><Download size={16} /> Currículo</button><select aria-label={`Etapa de ${user.name}`} value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus, application.id)}><option value="applied">Recebido</option><option value="screening">Em triagem</option><option value="interview">Entrevista</option><option value="approved">Aprovado</option><option value="rejected">Não selecionado</option></select></div>
               </article>
             )

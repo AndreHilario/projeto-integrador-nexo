@@ -3,22 +3,28 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { JobCard } from '../../components/JobCard'
 import { useApp } from '../../context/useApp'
+import { applicationsApi } from '../../services/applicationsApi'
 import { jobsApi } from '../../services/jobsApi'
-import type { CompanyProfile, JobSummary } from '../../types'
+import type { Application, CompanyProfile, JobSummary } from '../../types'
 import { deriveCompanyDisplay } from '../../utils/format'
 
 export function CompanyDashboardPage() {
-  const { database, currentUser } = useApp()
+  const { token, currentUser } = useApp()
   const [jobs, setJobs] = useState<JobSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [applications, setApplications] = useState<Application[]>([])
 
   useEffect(() => {
     if (!currentUser) return
     jobsApi.search({ companyId: currentUser.id }).then(setJobs).finally(() => setLoading(false))
   }, [currentUser])
 
-  const jobIds = new Set(jobs.map((job) => job.id))
-  const applications = database.applications.filter((application) => jobIds.has(application.jobId))
+  useEffect(() => {
+    if (!token || jobs.length === 0) return
+    Promise.all(jobs.map((job) => applicationsApi.listByJob(token, job.id).catch(() => [])))
+      .then((results) => setApplications(results.flat()))
+  }, [token, jobs])
+
   const activeJobs = jobs.filter((job) => job.status === 'active').length
   const interviews = applications.filter((application) => application.status === 'interview').length
   const views = jobs.reduce((total, job) => total + job.views, 0)
@@ -40,7 +46,7 @@ export function CompanyDashboardPage() {
         <section className="attention-card surface">
           <div className="attention-icon"><UserRoundCheck size={22} /></div>
           <div><span className="eyebrow">Em destaque</span><h2>{applications.filter((item) => item.status === 'applied').length || applications.length} novos perfis para revisar</h2><p>Os candidatos com maior compatibilidade já aparecem primeiro no ranking.</p></div>
-          <Link to={`/empresa/vagas/${jobs.find((job) => database.applications.some((item) => item.jobId === job.id))?.id ?? jobs[0]?.id}`}>Revisar agora <ArrowRight size={17} /></Link>
+          <Link to={`/empresa/vagas/${jobs.find((job) => applications.some((item) => item.jobId === job.id))?.id ?? jobs[0]?.id}`}>Revisar agora <ArrowRight size={17} /></Link>
         </section>
       )}
       <section className="content-section">
