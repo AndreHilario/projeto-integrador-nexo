@@ -7,8 +7,8 @@ import { useApp } from '../../context/useApp'
 import type { UserRole } from '../../types'
 
 const demoCredentials = {
-  candidate: { email: 'lucas@nexo.com', password: '123456' },
-  company: { email: 'mariana@auroratech.com', password: '123456' },
+  candidate: { email: 'lucas@nexo.com', password: '12345678' },
+  company: { email: 'mariana@auroratech.com', password: '12345678' },
 }
 
 export function LoginPage() {
@@ -19,6 +19,7 @@ export function LoginPage() {
   const [password, setPassword] = useState(demoCredentials.candidate.password)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const selectRole = (nextRole: UserRole) => {
     setRole(nextRole)
@@ -27,13 +28,18 @@ export function LoginPage() {
     setError('')
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!login(email, password, role)) {
-      setError('E-mail ou senha não conferem. Tente novamente.')
-      return
+    setError('')
+    setSubmitting(true)
+    try {
+      await login(email, password, role)
+      navigate(role === 'candidate' ? '/vagas' : '/empresa')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'E-mail ou senha não conferem. Tente novamente.')
+    } finally {
+      setSubmitting(false)
     }
-    navigate(role === 'candidate' ? '/vagas' : '/empresa')
   }
 
   return (
@@ -89,7 +95,9 @@ export function LoginPage() {
               <button type="button" className="link-button">Esqueci minha senha</button>
             </div>
             {error && <div className="inline-error">{error}</div>}
-            <button className="primary-button auth-submit" type="submit">Entrar <ArrowRight size={18} /></button>
+            <button className="primary-button auth-submit" type="submit" disabled={submitting}>
+              {submitting ? 'Entrando…' : 'Entrar'} <ArrowRight size={18} />
+            </button>
           </form>
           <p className="signup-prompt">Ainda não tem uma conta? <Link to={role === 'candidate' ? '/cadastro/candidato' : '/cadastro/empresa'}>Cadastre-se grátis</Link></p>
           <p className="demo-hint">Os dados de demonstração já estão preenchidos.</p>

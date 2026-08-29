@@ -42,6 +42,15 @@ export interface User {
   profile: CandidateProfile | CompanyProfile
 }
 
+/** Usuário autenticado via auth-service (sem senha, que nunca trafega além do login). */
+export interface SessionUser {
+  id: string
+  role: UserRole
+  name: string
+  email: string
+  profile: CandidateProfile | CompanyProfile
+}
+
 export interface Job {
   id: string
   companyId: string

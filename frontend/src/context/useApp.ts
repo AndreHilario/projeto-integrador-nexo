@@ -6,7 +6,7 @@ import type {
   Database,
   JobInput,
   JobStatus,
-  User,
+  SessionUser,
   UserRole,
 } from '../types'
 
@@ -20,18 +20,18 @@ export interface RegistrationInput {
 
 export interface AppContextValue {
   database: Database
-  currentUser: User | null
+  currentUser: SessionUser | null
   loading: boolean
   error: string | null
-  login: (email: string, password: string, role: UserRole) => boolean
-  register: (input: RegistrationInput) => User
+  login: (email: string, password: string, role: UserRole) => Promise<void>
+  register: (input: RegistrationInput) => Promise<void>
   logout: () => void
   applyToJob: (jobId: string) => void
   createJob: (input: JobInput) => string
   updateJob: (jobId: string, input: JobInput) => void
   setJobStatus: (jobId: string, status: JobStatus) => void
   setApplicationStatus: (applicationId: string, status: ApplicationStatus) => void
-  updateUser: (name: string, profile: CandidateProfile | CompanyProfile) => void
+  updateUser: (name: string, profile: CandidateProfile | CompanyProfile) => Promise<void>
 }
 
 export const AppContext = createContext<AppContextValue | null>(null)

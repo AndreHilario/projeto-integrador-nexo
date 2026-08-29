@@ -10,9 +10,11 @@ export function RegisterPage({ role }: { role: UserRole }) {
   const { register } = useApp()
   const navigate = useNavigate()
   const [resumeName, setResumeName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const isCandidate = role === 'candidate'
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const name = String(data.get('name'))
@@ -43,8 +45,16 @@ export function RegisterPage({ role }: { role: UserRole }) {
           about: String(data.get('about')),
         }
 
-    register({ role, name, email, password, profile })
-    navigate(isCandidate ? '/vagas' : '/empresa')
+    setError('')
+    setSubmitting(true)
+    try {
+      await register({ role, name, email, password, profile })
+      navigate(isCandidate ? '/vagas' : '/empresa')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível criar a conta. Tente novamente.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -82,7 +92,7 @@ export function RegisterPage({ role }: { role: UserRole }) {
                 </div>
                 <div className="form-grid two">
                   <label>E-mail<input type="email" name="email" placeholder="voce@exemplo.com" required /></label>
-                  <label>Senha<input type="password" name="password" minLength={6} placeholder="Mínimo de 6 caracteres" required /></label>
+                  <label>Senha<input type="password" name="password" minLength={8} placeholder="Mínimo de 8 caracteres" required /></label>
                 </div>
                 <div className="form-grid two">
                   <label>Título profissional<input name="headline" placeholder="Ex.: Desenvolvedor Front-end" required /></label>
@@ -112,7 +122,7 @@ export function RegisterPage({ role }: { role: UserRole }) {
                   <label>E-mail corporativo<input type="email" name="email" placeholder="voce@empresa.com" required /></label>
                 </div>
                 <div className="form-grid two">
-                  <label>Senha<input type="password" name="password" minLength={6} placeholder="Mínimo de 6 caracteres" required /></label>
+                  <label>Senha<input type="password" name="password" minLength={8} placeholder="Mínimo de 8 caracteres" required /></label>
                   <label>Cidade<input name="city" placeholder="São Paulo, SP" required /></label>
                 </div>
                 <div className="form-grid three">
@@ -124,7 +134,10 @@ export function RegisterPage({ role }: { role: UserRole }) {
               </>
             )}
             <label className="terms-label"><input type="checkbox" required /> Li e concordo com os Termos de Uso e Política de Privacidade.</label>
-            <button className="primary-button register-submit" type="submit">Criar conta <ArrowRight size={18} /></button>
+            {error && <div className="inline-error">{error}</div>}
+            <button className="primary-button register-submit" type="submit" disabled={submitting}>
+              {submitting ? 'Criando conta…' : 'Criar conta'} <ArrowRight size={18} />
+            </button>
           </form>
         </section>
       </div>

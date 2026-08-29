@@ -8,11 +8,13 @@ export function ProfilePage() {
   const { currentUser, updateUser } = useApp()
   const [saved, setSaved] = useState(false)
   const [resumeName, setResumeName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   if (!currentUser) return null
   const isCandidate = currentUser.role === 'candidate'
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const profile: CandidateProfile | CompanyProfile = isCandidate
@@ -38,9 +40,17 @@ export function ProfilePage() {
           website: String(data.get('website')),
           about: String(data.get('about')),
         }
-    updateUser(String(data.get('name')), profile)
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 3000)
+    setError('')
+    setSubmitting(true)
+    try {
+      await updateUser(String(data.get('name')), profile)
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 3000)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível salvar as alterações.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const candidate = currentUser.profile as CandidateProfile
@@ -71,7 +81,8 @@ export function ProfilePage() {
             <label>Sobre a empresa<textarea name="about" rows={6} defaultValue={company.about} required /></label>
           </>
         )}
-        <div className="form-actions"><span>{saved && <><CheckCircle2 size={17} /> Alterações salvas</>}</span><button className="primary-button" type="submit"><Save size={17} /> Salvar alterações</button></div>
+        {error && <div className="inline-error">{error}</div>}
+        <div className="form-actions"><span>{saved && <><CheckCircle2 size={17} /> Alterações salvas</>}</span><button className="primary-button" type="submit" disabled={submitting}><Save size={17} /> {submitting ? 'Salvando…' : 'Salvar alterações'}</button></div>
       </form>
     </div>
   )
