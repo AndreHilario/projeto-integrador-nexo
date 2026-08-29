@@ -1,18 +1,28 @@
-import { ArrowLeft, CalendarCheck2, CheckCircle2, Download, Edit3, Eye, MapPin, MoreHorizontal, PauseCircle, PlayCircle, Search, Sparkles, UserRoundCheck, UsersRound, XCircle } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ArrowLeft, CalendarCheck2, CheckCircle2, Download, Edit3, Eye, MapPin, PauseCircle, PlayCircle, Search, Sparkles, Trash2, UserRoundCheck, UsersRound, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
-import type { ApplicationStatus, CandidateProfile } from '../../types'
+import { jobsApi, toJobInput } from '../../services/jobsApi'
+import type { ApplicationStatus, CandidateProfile, Job, JobStatus } from '../../types'
 import { applicationStatusLabel, jobStatusLabel } from '../../utils/format'
 
 export function CompanyJobDetailPage() {
   const { jobId } = useParams()
   const navigate = useNavigate()
-  const { database, currentUser, setJobStatus, setApplicationStatus } = useApp()
+  const { database, currentUser, updateJob, deleteJob, setApplicationStatus } = useApp()
+  const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [notice, setNotice] = useState('')
-  const job = database.jobs.find((item) => item.id === jobId && item.companyId === currentUser?.id)
+
+  useEffect(() => {
+    if (!jobId) return
+    jobsApi.getById(jobId)
+      .then((data) => setJob(data.companyId === currentUser?.id ? data : null))
+      .catch(() => setJob(null))
+      .finally(() => setLoading(false))
+  }, [jobId, currentUser?.id])
 
   const candidates = useMemo(() => database.applications
     .filter((application) => application.jobId === jobId)
@@ -23,6 +33,7 @@ export function CompanyJobDetailPage() {
     })
     .sort((a, b) => b.application.match - a.application.match), [database.applications, database.users, jobId, query, statusFilter])
 
+  if (loading) return <div className="empty-state surface"><h2>Carregando vaga...</h2></div>
   if (!job) return <div className="empty-state surface"><h2>Vaga não encontrada</h2><button className="secondary-button" onClick={() => navigate('/empresa')}>Voltar ao painel</button></div>
 
   const totalApplications = database.applications.filter((item) => item.jobId === job.id)
@@ -31,6 +42,18 @@ export function CompanyJobDetailPage() {
   const flash = (message: string) => {
     setNotice(message)
     window.setTimeout(() => setNotice(''), 2800)
+  }
+
+  const changeJobStatus = async (status: JobStatus) => {
+    const updated = await updateJob(job.id, { ...toJobInput(job), status })
+    setJob(updated)
+    flash('Status da vaga atualizado.')
+  }
+
+  const removeJob = async () => {
+    if (!window.confirm('Tem certeza que deseja excluir esta vaga? Essa ação não pode ser desfeita.')) return
+    await deleteJob(job.id)
+    navigate('/empresa')
   }
 
   const changeStatus = (status: ApplicationStatus, applicationId: string) => {
@@ -42,8 +65,8 @@ export function CompanyJobDetailPage() {
     <div className="company-job-page">
       <Link className="back-link page-back" to="/empresa"><ArrowLeft size={17} /> Voltar para o painel</Link>
       <section className="company-job-header surface">
-        <div className="company-job-main"><div className="company-logo large company-logo-blue">{job.companyLogo}</div><div><div className="detail-badges"><span className={`status-dot status-${job.status}`}>{jobStatusLabel[job.status]}</span><span>{job.employmentType}</span></div><h1>{job.title}</h1><p><MapPin size={16} />{job.location} · {job.workplace} · {job.experience}</p></div></div>
-        <div className="company-job-actions"><Link className="secondary-button" to={`/empresa/vagas/${job.id}/editar`}><Edit3 size={17} /> Editar vaga</Link>{job.status === 'active' ? <button className="secondary-button" onClick={() => setJobStatus(job.id, 'paused')}><PauseCircle size={17} /> Pausar</button> : job.status === 'paused' ? <button className="secondary-button" onClick={() => setJobStatus(job.id, 'active')}><PlayCircle size={17} /> Reabrir</button> : <button className="secondary-button" onClick={() => setJobStatus(job.id, 'active')}><PlayCircle size={17} /> Reabrir</button>}<button className="icon-button" aria-label="Mais opções"><MoreHorizontal size={19} /></button></div>
+        <div className="company-job-main"><div className="company-logo large company-logo-blue">{job.title.slice(0, 2).toUpperCase()}</div><div><div className="detail-badges"><span className={`status-dot status-${job.status}`}>{jobStatusLabel[job.status]}</span><span>{job.employmentType}</span></div><h1>{job.title}</h1><p><MapPin size={16} />{job.location} · {job.workplace} · {job.experience}</p></div></div>
+        <div className="company-job-actions"><Link className="secondary-button" to={`/empresa/vagas/${job.id}/editar`}><Edit3 size={17} /> Editar vaga</Link>{job.status === 'active' ? <button className="secondary-button" onClick={() => changeJobStatus('paused')}><PauseCircle size={17} /> Pausar</button> : <button className="secondary-button" onClick={() => changeJobStatus('active')}><PlayCircle size={17} /> Reabrir</button>}<button className="icon-button" aria-label="Excluir vaga" onClick={removeJob}><Trash2 size={19} /></button></div>
       </section>
       <section className="job-kpi-row surface">
         <div><span className="metric-icon purple"><UsersRound size={19} /></span><span><strong>{totalApplications.length}</strong><small>Candidatos</small></span></div>
@@ -52,7 +75,7 @@ export function CompanyJobDetailPage() {
         <div><span className="metric-icon orange"><UserRoundCheck size={19} /></span><span><strong>{totalApplications.filter((item) => item.match >= 85).length}</strong><small>Alto match</small></span></div>
       </section>
       <section className="candidate-section">
-        <div className="list-toolbar candidate-toolbar"><div><span className="eyebrow"><Sparkles size={15} /> Ranking inteligente</span><h2>Candidatos</h2><p>Ordenados pela compatibilidade com os requisitos da vaga.</p></div>{job.status !== 'closed' && <button className="danger-text-button" onClick={() => setJobStatus(job.id, 'closed')}><XCircle size={17} /> Encerrar vaga</button>}</div>
+        <div className="list-toolbar candidate-toolbar"><div><span className="eyebrow"><Sparkles size={15} /> Ranking inteligente</span><h2>Candidatos</h2><p>Ordenados pela compatibilidade com os requisitos da vaga.</p></div>{job.status !== 'closed' && <button className="danger-text-button" onClick={() => changeJobStatus('closed')}><XCircle size={17} /> Encerrar vaga</button>}</div>
         <div className="candidate-filters surface"><label><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nome ou habilidade" /></label><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todas as etapas</option><option value="applied">Candidatura enviada</option><option value="screening">Em triagem</option><option value="interview">Entrevista</option><option value="approved">Aprovado</option><option value="rejected">Não selecionado</option></select></div>
         <div className="candidate-list">
           {candidates.map(({ application, user }, index) => {

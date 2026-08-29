@@ -1,6 +1,6 @@
 # Nexo
 
-MVP de uma plataforma digital de intermediação de vagas e candidatos. Cadastro, login e perfil (candidato/empresa) são autenticados contra o `auth-service` real (via API Gateway KrakenD); vagas e candidaturas ainda usam dados mockados persistidos em `localStorage`, pois `jobs-service` e `applications-service` ainda não foram implementados.
+MVP de uma plataforma digital de intermediação de vagas e candidatos. Cadastro, login, perfil (candidato/empresa) e vagas (busca, publicação, edição, status e exclusão) são feitos contra o `auth-service` e o `jobs-service` reais (via API Gateway KrakenD); candidaturas ainda usam dados mockados persistidos em `localStorage`, pois `applications-service` ainda não foi implementado.
 
 ## Executando
 
@@ -16,21 +16,24 @@ npm run build
 npm run preview
 ```
 
-## Autenticação
+## Autenticação e vagas
 
-Login, cadastro e perfil chamam o `auth-service` (Java/Spring Boot) através do API Gateway KrakenD, em `http://localhost:8000/api/auth` por padrão. Para funcionar, é necessário subir `db`, `auth-service` e `krakend` (veja o `docker-compose.yaml` na raiz do projeto):
+Login, cadastro, perfil e vagas chamam `auth-service` e `jobs-service` (Java/Spring Boot) através do API Gateway KrakenD, em `http://localhost:8000/api/auth` e `http://localhost:8000/api` por padrão. Para funcionar, é necessário subir `db`, `auth-service`, `jobs-service` e `krakend` (veja o `docker-compose.yaml` na raiz do projeto):
 
 ```bash
-docker compose up -d db auth-service krakend
+docker compose up -d db auth-service jobs-service krakend
 ```
 
-O e-mail/senha preenchidos automaticamente na tela de login (`lucas@nexo.com` / `mariana@auroratech.com`, senha `123456`) são apenas um atalho de formulário — como o banco do `auth-service` começa vazio, é preciso criar essas contas pela tela de cadastro antes de conseguir logar com elas (ou usar qualquer outro e-mail/senha cadastrados).
+O e-mail/senha preenchidos automaticamente na tela de login (`lucas@nexo.com` / `mariana@auroratech.com`, senha `123456`) são apenas um atalho de formulário — como o banco começa vazio, é preciso criar essas contas pela tela de cadastro antes de conseguir logar com elas (ou usar qualquer outro e-mail/senha cadastrados). Da mesma forma, o `jobs-service` começa sem nenhuma vaga cadastrada: é preciso publicar vagas pela conta de empresa para elas aparecerem na busca do candidato.
 
-Para apontar para outra URL do gateway/serviço, defina `VITE_AUTH_API_BASE_URL` (ex.: `.env`):
+Para apontar para outra URL do gateway/serviço, defina em `.env`:
 
 ```env
 VITE_AUTH_API_BASE_URL=http://localhost:8000/api/auth
+VITE_JOBS_API_BASE_URL=http://localhost:8000/api
 ```
+
+Como o `jobs-service` guarda apenas o `companyId` de cada vaga (o nome da empresa é dado do `auth-service`, e ainda não existe um diretório público de empresas), a interface mostra o nome real da empresa apenas quando é a própria empresa dona da vaga vendo seu painel; para candidatos navegando vagas de terceiros, o rótulo exibido é genérico ("Empresa parceira").
 
 ## Fluxos disponíveis
 
@@ -40,7 +43,7 @@ VITE_AUTH_API_BASE_URL=http://localhost:8000/api/auth
 - Detalhes e envio de candidatura
 - Acompanhamento das etapas da candidatura
 - Painel da empresa com métricas e vagas publicadas
-- Criação e edição de vagas
+- Criação, edição e exclusão de vagas
 - Pausa, reabertura e encerramento de vagas
 - Ranking de candidatos por compatibilidade
 - Atualização da etapa de cada candidato
@@ -55,14 +58,14 @@ src/
   context/          estado e ações da aplicação
   data/             base inicial mockada
   pages/            telas por jornada
-  services/         dataProvider (vagas/candidaturas mock) e cliente do auth-service
+  services/         dataProvider (candidaturas mock), authApi e jobsApi (clientes do auth-service/jobs-service)
   types/            contratos do domínio
   utils/            formatação e rótulos
 ```
 
-## Vagas e candidaturas (ainda mockadas)
+## Candidaturas (ainda mockadas)
 
-Vagas e candidaturas continuam usando o `dataProvider` local/HTTP genérico, já que `jobs-service` e `applications-service` ainda não existem. Para trocar essa fonte por uma API própria no futuro, defina em `.env`:
+Candidaturas (envio, ranking de candidatos, atualização de etapa) continuam usando o `dataProvider` local/HTTP genérico, já que `applications-service` ainda não existe. Para trocar essa fonte por uma API própria no futuro, defina em `.env`:
 
 ```env
 VITE_DATA_SOURCE=api
@@ -74,7 +77,7 @@ O provider HTTP está em `src/services/dataProvider.ts`. O contrato atual espera
 - `GET /state` para carregar o estado
 - `PUT /state` para persistir o estado
 
-Essa fronteira pode ser substituída por endpoints de vagas e candidaturas sem alterar os componentes de interface.
+Essa fronteira pode ser substituída por endpoints de candidaturas sem alterar os componentes de interface.
 
 ## Qualidade
 

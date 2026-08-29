@@ -4,8 +4,8 @@ import type {
   CandidateProfile,
   CompanyProfile,
   Database,
+  Job,
   JobInput,
-  JobStatus,
   SessionUser,
   UserRole,
 } from '../types'
@@ -26,10 +26,10 @@ export interface AppContextValue {
   login: (email: string, password: string, role: UserRole) => Promise<void>
   register: (input: RegistrationInput) => Promise<void>
   logout: () => void
-  applyToJob: (jobId: string) => void
-  createJob: (input: JobInput) => string
-  updateJob: (jobId: string, input: JobInput) => void
-  setJobStatus: (jobId: string, status: JobStatus) => void
+  applyToJob: (job: Job) => void
+  createJob: (input: JobInput) => Promise<Job>
+  updateJob: (jobId: string, input: JobInput) => Promise<Job>
+  deleteJob: (jobId: string) => Promise<void>
   setApplicationStatus: (applicationId: string, status: ApplicationStatus) => void
   updateUser: (name: string, profile: CandidateProfile | CompanyProfile) => Promise<void>
 }

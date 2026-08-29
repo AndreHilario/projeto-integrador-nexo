@@ -1,37 +1,61 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleDollarSign, ListChecks, MapPin, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
-import type { ExperienceLevel, JobInput, Workplace } from '../../types'
+import { jobsApi } from '../../services/jobsApi'
+import type { ExperienceLevel, Job, JobInput, Workplace } from '../../types'
+import type { AppContextValue } from '../../context/useApp'
 
 const toItems = (value: FormDataEntryValue | null) => String(value).split(/\n|,/).map((item) => item.trim()).filter(Boolean)
 
 export function JobFormPage() {
   const { jobId } = useParams()
-  const { database, createJob, updateJob } = useApp()
+  const { createJob, updateJob } = useApp()
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const job = database.jobs.find((item) => item.id === jobId)
+  const [job, setJob] = useState<Job | null>(null)
+  const [loadingJob, setLoadingJob] = useState(Boolean(jobId))
+
+  useEffect(() => {
+    if (!jobId) return
+    jobsApi.getById(jobId).then(setJob).catch(() => setJob(null)).finally(() => setLoadingJob(false))
+  }, [jobId])
+
+  if (loadingJob) return <div className="empty-state surface"><h2>Carregando vaga...</h2></div>
+
+  return <JobFormFields job={job} createJob={createJob} updateJob={updateJob} navigate={navigate} />
+}
+
+interface JobFormFieldsProps {
+  job: Job | null
+  createJob: AppContextValue['createJob']
+  updateJob: AppContextValue['updateJob']
+  navigate: (path: string) => void
+}
+
+function JobFormFields({ job, createJob, updateJob, navigate }: JobFormFieldsProps) {
   const editing = Boolean(job)
+  const [step, setStep] = useState(1)
   const [basic, setBasic] = useState({
     title: job?.title ?? '',
     location: job?.location ?? '',
-    workplace: job?.workplace ?? 'Híbrido',
-    experience: job?.experience ?? 'Júnior',
+    workplace: job?.workplace ?? ('Híbrido' as Workplace),
+    experience: job?.experience ?? ('Júnior' as ExperienceLevel),
     employmentType: job?.employmentType ?? 'CLT',
     salary: job?.salary ?? '',
   })
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const basicComplete = Boolean(basic.title.trim() && basic.location.trim() && basic.salary.trim())
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const input: JobInput = {
       title: basic.title,
       location: basic.location,
-      workplace: basic.workplace as Workplace,
-      experience: basic.experience as ExperienceLevel,
+      workplace: basic.workplace,
+      experience: basic.experience,
       employmentType: basic.employmentType,
       salary: basic.salary,
       description: String(data.get('description')),
@@ -40,13 +64,20 @@ export function JobFormPage() {
       skills: toItems(data.get('skills')),
       benefits: toItems(data.get('benefits')),
     }
-    if (job) {
-      updateJob(job.id, input)
-      navigate(`/empresa/vagas/${job.id}`)
-      return
+    setSubmitError(null)
+    setSubmitting(true)
+    try {
+      if (job) {
+        await updateJob(job.id, input)
+        navigate(`/empresa/vagas/${job.id}`)
+        return
+      }
+      const created = await createJob(input)
+      navigate(`/empresa/vagas/${created.id}`)
+    } catch (reason) {
+      setSubmitError(reason instanceof Error ? reason.message : 'Não foi possível salvar a vaga.')
+      setSubmitting(false)
     }
-    const id = createJob(input)
-    navigate(`/empresa/vagas/${id}`)
   }
 
   return (
@@ -74,7 +105,8 @@ export function JobFormPage() {
             <label>Sobre a oportunidade<textarea name="description" rows={5} defaultValue={job?.description} placeholder="Apresente a equipe, o contexto e o principal desafio da posição" required /></label>
             <div className="form-grid two"><label>Responsabilidades<textarea name="responsibilities" rows={6} defaultValue={job?.responsibilities.join('\n')} placeholder={'Uma responsabilidade por linha\nColaborar com Produto\nEvoluir as interfaces'} required /><small>Uma por linha</small></label><label>Requisitos<textarea name="requirements" rows={6} defaultValue={job?.requirements.join('\n')} placeholder={'Um requisito por linha\nReact e TypeScript\nConhecimento de testes'} required /><small>Um por linha</small></label></div>
             <div className="form-grid two"><label>Competências<input name="skills" defaultValue={job?.skills.join(', ')} placeholder="React, TypeScript, CSS" required /><small>Separe por vírgulas</small></label><label>Benefícios<input name="benefits" defaultValue={job?.benefits.join(', ')} placeholder="Plano de saúde, Vale-refeição" required /><small>Separe por vírgulas</small></label></div>
-            <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setStep(1)}>Voltar</button><button className="primary-button" type="submit">{editing ? 'Salvar alterações' : 'Publicar vaga'} <CheckCircle2 size={17} /></button></div>
+            {submitError && <p className="form-error">{submitError}</p>}
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setStep(1)}>Voltar</button><button className="primary-button" type="submit" disabled={submitting}>{editing ? 'Salvar alterações' : 'Publicar vaga'} <CheckCircle2 size={17} /></button></div>
           </div>
         )}
       </form>

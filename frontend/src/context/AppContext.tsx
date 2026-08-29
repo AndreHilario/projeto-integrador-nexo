@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { authApi, toCandidateProfile, toCompanyProfile } from '../services/authApi'
 import { clearStoredToken, getStoredToken, setStoredToken } from '../services/authStorage'
 import { dataProvider } from '../services/dataProvider'
+import { jobsApi } from '../services/jobsApi'
 import type {
   ApplicationStatus,
   CandidateProfile,
   CompanyProfile,
   Database,
-  JobInput,
-  JobStatus,
+  Job,
   SessionUser,
 } from '../types'
 import { AppContext } from './useApp'
@@ -16,7 +16,6 @@ import type { AppContextValue, RegistrationInput } from './useApp'
 
 const emptyDatabase: Database = {
   users: [],
-  jobs: [],
   applications: [],
   currentUserId: null,
 }
@@ -113,14 +112,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser({ ...currentUser, name: updatedName.name, profile: updatedProfile })
   }
 
-  const applyToJob = (jobId: string) => {
+  const applyToJob = (job: Job) => {
     if (!currentUser || currentUser.role !== 'candidate') return
     commit((current) => {
-      if (current.applications.some((item) => item.jobId === jobId && item.candidateId === currentUser.id)) return current
-      const job = current.jobs.find((item) => item.id === jobId)
+      if (current.applications.some((item) => item.jobId === job.id && item.candidateId === currentUser.id)) return current
       const profile = currentUser.profile as CandidateProfile
-      const matches = job?.skills.filter((skill) => profile.skills.some((item) => item.toLowerCase() === skill.toLowerCase())).length ?? 0
-      const match = Math.min(98, 68 + matches * 8 + (job?.experience === profile.experience ? 8 : 0))
+      const matches = job.skills.filter((skill) => profile.skills.some((item) => item.toLowerCase() === skill.toLowerCase())).length
+      const match = Math.min(98, 68 + matches * 8 + (job.experience === profile.experience ? 8 : 0))
       const now = new Date().toISOString()
       return {
         ...current,
@@ -128,7 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...current.applications,
           {
             id: makeId('application'),
-            jobId,
+            jobId: job.id,
             candidateId: currentUser.id,
             status: 'applied',
             appliedAt: now,
@@ -140,43 +138,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const createJob = (input: JobInput) => {
-    if (!currentUser || currentUser.role !== 'company') return ''
-    const profile = currentUser.profile as CompanyProfile
-    const id = makeId('job')
-    const companyName = profile.legalName.replace(/\s+(Ltda\.?|S\.?A\.?)$/i, '')
-    const companyLogo = companyName.split(' ').slice(0, 2).map((word) => word[0]).join('').toUpperCase()
-    commit((current) => ({
-      ...current,
-      jobs: [
-        {
-          ...input,
-          id,
-          companyId: currentUser.id,
-          companyName,
-          companyLogo,
-          status: 'active',
-          postedAt: new Date().toISOString(),
-          views: 0,
-        },
-        ...current.jobs,
-      ],
-    }))
-    return id
+  const createJob: AppContextValue['createJob'] = (input) => {
+    if (!token) throw new Error('É necessário estar autenticado como empresa para publicar vagas.')
+    return jobsApi.create(token, input)
   }
 
-  const updateJob = (jobId: string, input: JobInput) => {
-    commit((current) => ({
-      ...current,
-      jobs: current.jobs.map((job) => (job.id === jobId ? { ...job, ...input } : job)),
-    }))
+  const updateJob: AppContextValue['updateJob'] = (jobId, input) => {
+    if (!token) throw new Error('É necessário estar autenticado como empresa para editar vagas.')
+    return jobsApi.update(token, jobId, input)
   }
 
-  const setJobStatus = (jobId: string, status: JobStatus) => {
-    commit((current) => ({
-      ...current,
-      jobs: current.jobs.map((job) => (job.id === jobId ? { ...job, status } : job)),
-    }))
+  const deleteJob: AppContextValue['deleteJob'] = (jobId) => {
+    if (!token) throw new Error('É necessário estar autenticado como empresa para remover vagas.')
+    return jobsApi.remove(token, jobId)
   }
 
   const setApplicationStatus = (applicationId: string, status: ApplicationStatus) => {
@@ -202,7 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       applyToJob,
       createJob,
       updateJob,
-      setJobStatus,
+      deleteJob,
       setApplicationStatus,
       updateUser,
     }),

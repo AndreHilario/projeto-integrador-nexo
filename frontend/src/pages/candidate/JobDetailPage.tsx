@@ -1,19 +1,28 @@
 import { ArrowLeft, Bookmark, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, MapPin, Share2, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
-import type { CandidateProfile } from '../../types'
-import { formatRelativeDate } from '../../utils/format'
+import { jobsApi } from '../../services/jobsApi'
+import type { CandidateProfile, Job } from '../../types'
+import { formatRelativeDate, unknownCompanyDisplay } from '../../utils/format'
 
 export function JobDetailPage() {
   const { jobId } = useParams()
   const navigate = useNavigate()
   const { database, currentUser, applyToJob } = useApp()
+  const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [notice, setNotice] = useState(false)
-  const job = database.jobs.find((item) => item.id === jobId)
+
+  useEffect(() => {
+    if (!jobId) return
+    jobsApi.getById(jobId).then(setJob).catch(() => setJob(null)).finally(() => setLoading(false))
+  }, [jobId])
+
   const application = database.applications.find((item) => item.jobId === jobId && item.candidateId === currentUser?.id)
 
+  if (loading) return <div className="empty-state surface"><h2>Carregando vaga...</h2></div>
   if (!job) return <div className="empty-state surface"><h2>Vaga não encontrada</h2><button className="secondary-button" onClick={() => navigate('/vagas')}>Voltar para vagas</button></div>
 
   const profile = currentUser?.profile as CandidateProfile
@@ -21,7 +30,7 @@ export function JobDetailPage() {
   const match = application?.match ?? Math.min(98, 70 + matchingSkills.length * 7 + (job.experience === profile.experience ? 7 : 0))
 
   const apply = () => {
-    applyToJob(job.id)
+    applyToJob(job)
     setNotice(true)
     window.setTimeout(() => setNotice(false), 3600)
   }
@@ -30,11 +39,11 @@ export function JobDetailPage() {
     <div className="detail-page">
       <button className="back-link page-back" type="button" onClick={() => navigate(-1)}><ArrowLeft size={17} /> Voltar para vagas</button>
       <section className="job-detail-hero surface">
-        <div className={`company-logo large company-logo-${job.companyId === 'company-vento' ? 'mint' : 'blue'}`}>{job.companyLogo}</div>
+        <div className="company-logo large company-logo-blue">{unknownCompanyDisplay.logo}</div>
         <div className="job-detail-title">
           <div className="detail-badges"><span className="status-dot status-active">Vaga ativa</span><span>{formatRelativeDate(job.postedAt)}</span></div>
           <h1>{job.title}</h1>
-          <p>{job.companyName}</p>
+          <p>{unknownCompanyDisplay.name}</p>
           <div className="detail-meta"><span><MapPin size={17} />{job.location}</span><span><BriefcaseBusiness size={17} />{job.employmentType}</span><span><Clock3 size={17} />{job.workplace}</span></div>
         </div>
         <div className="detail-actions"><button className={`icon-button ${saved ? 'selected' : ''}`} type="button" onClick={() => setSaved((value) => !value)} aria-label="Salvar vaga"><Bookmark size={19} fill={saved ? 'currentColor' : 'none'} /></button><button className="icon-button" type="button" aria-label="Compartilhar vaga"><Share2 size={19} /></button></div>
@@ -60,7 +69,7 @@ export function JobDetailPage() {
             <p>{application ? 'A empresa já recebeu seu perfil e currículo.' : 'Seu perfil e currículo serão compartilhados com a empresa.'}</p>
             {application && <Link className="text-link centered" to="/candidaturas">Acompanhar candidatura</Link>}
           </div>
-          <div className="company-summary surface"><div className="company-logo company-logo-blue">{job.companyLogo}</div><div><span className="muted-label">Sobre a empresa</span><h3>{job.companyName}</h3><p>Tecnologia · São Paulo</p></div><Building2 size={20} /></div>
+          <div className="company-summary surface"><div className="company-logo company-logo-blue">{unknownCompanyDisplay.logo}</div><div><span className="muted-label">Sobre a empresa</span><h3>{unknownCompanyDisplay.name}</h3></div><Building2 size={20} /></div>
         </aside>
       </div>
       {notice && <div className="toast"><CheckCircle2 size={20} /><div><strong>Candidatura enviada!</strong><span>Acompanhe as próximas etapas na área de candidaturas.</span></div></div>}

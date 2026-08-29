@@ -1,19 +1,34 @@
 import { ArrowUpRight, BriefcaseBusiness, CalendarDays, Check, Clock3, Inbox } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../context/useApp'
-import type { ApplicationStatus } from '../../types'
-import { applicationStatusLabel, formatDate } from '../../utils/format'
+import { jobsApi } from '../../services/jobsApi'
+import type { ApplicationStatus, Job } from '../../types'
+import { applicationStatusLabel, formatDate, unknownCompanyDisplay } from '../../utils/format'
 
 const stages: ApplicationStatus[] = ['applied', 'screening', 'interview', 'approved']
 
 export function ApplicationsPage() {
   const { database, currentUser } = useApp()
   const [filter, setFilter] = useState<'all' | 'active' | 'done'>('all')
+  const [jobsById, setJobsById] = useState<Record<string, Job>>({})
   const applications = useMemo(() => database.applications
     .filter((item) => item.candidateId === currentUser?.id)
     .filter((item) => filter === 'all' || (filter === 'active' ? !['approved', 'rejected'].includes(item.status) : ['approved', 'rejected'].includes(item.status)))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [currentUser?.id, database.applications, filter])
+
+  useEffect(() => {
+    const missingIds = [...new Set(applications.map((item) => item.jobId))].filter((id) => !jobsById[id])
+    if (missingIds.length === 0) return
+    Promise.all(missingIds.map((id) => jobsApi.getById(id).catch(() => null))).then((results) => {
+      setJobsById((current) => {
+        const next = { ...current }
+        results.forEach((job, index) => { if (job) next[missingIds[index]] = job })
+        return next
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applications])
 
   return (
     <div className="page-stack narrow-content">
@@ -28,14 +43,14 @@ export function ApplicationsPage() {
       </div>
       <div className="application-list">
         {applications.map((application) => {
-          const job = database.jobs.find((item) => item.id === application.jobId)
+          const job = jobsById[application.jobId]
           if (!job) return null
           const currentStage = stages.indexOf(application.status)
           return (
             <article className="application-card surface" key={application.id}>
               <div className="application-card-head">
-                <div className={`company-logo company-logo-${job.companyId === 'company-vento' ? 'mint' : 'blue'}`}>{job.companyLogo}</div>
-                <div><span className={`application-badge application-${application.status}`}>{applicationStatusLabel[application.status]}</span><h2>{job.title}</h2><p>{job.companyName} · {job.workplace}</p></div>
+                <div className="company-logo company-logo-blue">{unknownCompanyDisplay.logo}</div>
+                <div><span className={`application-badge application-${application.status}`}>{applicationStatusLabel[application.status]}</span><h2>{job.title}</h2><p>{unknownCompanyDisplay.name} · {job.workplace}</p></div>
                 <Link to={`/vagas/${job.id}`} className="icon-button"><ArrowUpRight size={19} /></Link>
               </div>
               {application.status === 'rejected' ? (

@@ -51,25 +51,29 @@ export interface SessionUser {
   profile: CandidateProfile | CompanyProfile
 }
 
-export interface Job {
+/** Campos devolvidos por GET /jobs (listagem/busca) no jobs-service. */
+export interface JobSummary {
   id: string
   companyId: string
-  companyName: string
-  companyLogo: string
   title: string
   location: string
   workplace: Workplace
   experience: ExperienceLevel
   employmentType: string
   salary: string
+  status: JobStatus
+  views: number
+  postedAt: string
+}
+
+/** Campos adicionais devolvidos por GET /jobs/{id} no jobs-service. */
+export interface Job extends JobSummary {
+  updatedAt: string
   description: string
   responsibilities: string[]
   requirements: string[]
   skills: string[]
   benefits: string[]
-  status: JobStatus
-  postedAt: string
-  views: number
 }
 
 export interface Application {
@@ -82,9 +86,9 @@ export interface Application {
   match: number
 }
 
+/** Usuários e candidaturas seguem mockados em localStorage, pois applications-service ainda não existe. */
 export interface Database {
   users: User[]
-  jobs: Job[]
   applications: Application[]
   currentUserId: string | null
 }
@@ -101,4 +105,6 @@ export interface JobInput {
   requirements: string[]
   skills: string[]
   benefits: string[]
+  /** Só é considerado em atualizações (PUT); ignorado na criação de vagas. */
+  status?: JobStatus
 }

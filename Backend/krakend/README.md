@@ -31,6 +31,12 @@ Por padrão o KrakenD **não repassa headers customizados da requisição pro ba
 
 **Cuidado:** `input_headers` é uma lista **exaustiva**, não aditiva — declarar `["Authorization"]` também *suprime* o `Content-Type` que era repassado por padrão. Por isso, todo endpoint que recebe corpo (PUT/POST) e também exige `Authorization` precisa listar os dois: `["Authorization", "Content-Type"]`. Descobrimos isso na prática: os `PUT` de `/me` e `/profile/*` chegavam no `auth-service` com `Content-Type: application/octet-stream` em vez de `application/json`, e o Spring rejeitava com `HttpMediaTypeNotSupportedException` (500, sem log de negócio nenhum). Qualquer novo endpoint autenticado com corpo (inclusive em `jobs-service`/`applications-service` no futuro) precisa repetir essa combinação.
 
+## Respostas em array (`output_encoding: no-op`)
+
+O KrakenD, por padrão, espera que o backend devolva um objeto JSON (`{...}`) — é assim que ele decodifica a resposta antes de aplicar qualquer manipulação/CORS/merge. Um endpoint que devolve uma lista JSON "crua" (`[...]`), como `GET /jobs` (listagem/busca de vagas) e `GET /applications`, quebra essa decodificação com `Error #01: json: cannot unmarshal array into Go value of type map[string]interface {}` (500, sem detalhe do erro real).
+
+A primeira tentativa de correção foi `"is_collection": true` no `backend`, mas isso faz o KrakenD **envolver** o array numa chave extra (`{"collection": [...]}`) em vez de devolvê-lo puro — quebra o contrato esperado pelo frontend de um jeito silencioso (sem erro HTTP, só um JSON no formato errado). A correção usada foi declarar `"output_encoding": "no-op"` no **endpoint** (não no backend): isso faz o KrakenD simplesmente repassar bytes-a-bytes a resposta do backend, sem tentar decodificá-la/reencodá-la — o array chega ao cliente exatamente como o `jobs-service` o devolveu. Qualquer novo endpoint que devolva uma lista (inclusive em `applications-service` quando for implementado) precisa dessa mesma configuração.
+
 ## Debug
 
 O nível de log está temporariamente em `DEBUG` (`telemetry/logging.level`) para facilitar o diagnóstico da integração com o `auth-service`. Volte para `INFO` quando o fluxo estiver estável, pra não poluir os logs em produção.
