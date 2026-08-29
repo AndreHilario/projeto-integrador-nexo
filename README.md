@@ -2,10 +2,11 @@
 
 ## Executando com Docker Compose
 
-Este projeto usa Docker Compose para subir dois serviços:
+Este projeto usa Docker Compose para subir os seguintes serviços:
 
 - **db**: banco de dados PostgreSQL 16, exposto na porta `5432`, com os scripts de inicialização em `Backend/dbfiles` e dados persistidos no volume `db_data`.
 - **frontend**: aplicação frontend, construída a partir de `frontend/Dockerfile` e exposta na porta `8080`.
+- **krakend**: API Gateway que centraliza o acesso aos microsserviços de backend, exposto na porta `8000`. Configuração em `Backend/krakend/krakend.json` (veja `Backend/krakend/README.md`).
 
 ### Pré-requisitos
 
@@ -29,6 +30,7 @@ O comando irá:
 ### Acessando os serviços
 
 - Frontend: [http://localhost:8080](http://localhost:8080)
+- API Gateway (KrakenD): [http://localhost:8000](http://localhost:8000)
 - Banco de dados: `localhost:5432`
   - Usuário: `nexo`
   - Senha: `nexo`

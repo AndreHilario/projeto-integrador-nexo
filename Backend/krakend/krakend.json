@@ -1,0 +1,89 @@
+{
+  "$schema": "https://www.krakend.io/schema/krakend.json",
+  "version": 3,
+  "name": "nexo-gateway",
+  "port": 8080,
+  "timeout": "3000ms",
+  "cache_ttl": "0s",
+  "output_encoding": "json",
+  "extra_config": {
+    "telemetry/logging": {
+      "level": "INFO",
+      "prefix": "[NEXO-GATEWAY]",
+      "syslog": false,
+      "stdout": true
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/auth/{path}",
+      "method": "ANY",
+      "backend": [
+        {
+          "url_pattern": "/{path}",
+          "host": ["http://auth-service:3001"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/jobs",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/jobs",
+          "host": ["http://jobs-service:3002"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/jobs",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/jobs",
+          "host": ["http://jobs-service:3002"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/jobs/{path}",
+      "method": "ANY",
+      "backend": [
+        {
+          "url_pattern": "/jobs/{path}",
+          "host": ["http://jobs-service:3002"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/applications",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/applications",
+          "host": ["http://applications-service:3003"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/applications",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/applications",
+          "host": ["http://applications-service:3003"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/applications/{path}",
+      "method": "ANY",
+      "backend": [
+        {
+          "url_pattern": "/applications/{path}",
+          "host": ["http://applications-service:3003"]
+        }
+      ]
+    }
+  ]
+}
