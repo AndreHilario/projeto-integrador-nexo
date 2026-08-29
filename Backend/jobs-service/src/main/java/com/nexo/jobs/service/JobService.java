@@ -118,23 +118,23 @@ public class JobService {
             job.setStatus(request.getStatus());
         }
 
-        job.getResponsibilities().clear();
         if (request.getResponsibilities() != null) {
+            job.getResponsibilities().clear();
             request.getResponsibilities().forEach(item -> job.getResponsibilities().add(new JobResponsibility(job, item)));
         }
 
-        job.getRequirements().clear();
         if (request.getRequirements() != null) {
+            job.getRequirements().clear();
             request.getRequirements().forEach(item -> job.getRequirements().add(new JobRequirement(job, item)));
         }
 
-        job.getSkills().clear();
         if (request.getSkills() != null) {
+            job.getSkills().clear();
             request.getSkills().forEach(skill -> job.getSkills().add(new JobSkill(job, skill)));
         }
 
-        job.getBenefits().clear();
         if (request.getBenefits() != null) {
+            job.getBenefits().clear();
             request.getBenefits().forEach(item -> job.getBenefits().add(new JobBenefit(job, item)));
         }
     }
