@@ -22,6 +22,22 @@ services:
     depends_on:
       - db
 
+  auth-service:
+    build:
+      context: ./Backend/auth-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: nexo
+      DB_USER: nexo
+      DB_PASSWORD: nexo
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production-please-0123456789}
+      JWT_EXPIRATION_MINUTES: 120
+    depends_on:
+      - db
+
   krakend:
     image: devopsfaith/krakend:2.6
     restart: unless-stopped
@@ -30,6 +46,8 @@ services:
       - "8000:8080"
     volumes:
       - ./Backend/krakend/krakend.json:/etc/krakend/krakend.json:ro
+    depends_on:
+      - auth-service
 
 volumes:
   db_data:
