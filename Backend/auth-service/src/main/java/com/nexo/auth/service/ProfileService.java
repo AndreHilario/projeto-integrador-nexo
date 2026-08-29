@@ -6,8 +6,10 @@ import com.nexo.auth.exception.ResourceNotFoundException;
 import com.nexo.auth.model.CandidateProfile;
 import com.nexo.auth.model.CandidateSkill;
 import com.nexo.auth.model.CompanyProfile;
+import com.nexo.auth.model.User;
 import com.nexo.auth.repository.CandidateProfileRepository;
 import com.nexo.auth.repository.CompanyProfileRepository;
+import com.nexo.auth.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,12 +25,25 @@ public class ProfileService {
 
     private final CandidateProfileRepository candidateProfileRepository;
     private final CompanyProfileRepository companyProfileRepository;
+    private final UserRepository userRepository;
 
     public ProfileService(
             CandidateProfileRepository candidateProfileRepository,
-            CompanyProfileRepository companyProfileRepository) {
+            CompanyProfileRepository companyProfileRepository,
+            UserRepository userRepository) {
         this.candidateProfileRepository = candidateProfileRepository;
         this.companyProfileRepository = companyProfileRepository;
+        this.userRepository = userRepository;
+    }
+
+    /** Usado por empresas para ver o perfil público de um candidato que se candidatou a uma vaga. */
+    public User getCandidateUser(UUID userId) {
+        log.debug("Buscando usuário candidato userId={}", userId);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("Usuário candidato não encontrado userId={}", userId);
+                    return new ResourceNotFoundException("Candidato não encontrado.");
+                });
     }
 
     public CandidateProfile getCandidateProfile(UUID userId) {

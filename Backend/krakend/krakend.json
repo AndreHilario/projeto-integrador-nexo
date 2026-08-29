@@ -69,6 +69,12 @@
       "backend": [{ "url_pattern": "/profile/company", "host": ["http://auth-service:3001"] }]
     },
     {
+      "endpoint": "/api/auth/candidates/{candidateId}",
+      "method": "GET",
+      "input_headers": ["Authorization"],
+      "backend": [{ "url_pattern": "/candidates/{candidateId}", "host": ["http://auth-service:3001"] }]
+    },
+    {
       "endpoint": "/api/jobs",
       "method": "GET",
       "output_encoding": "no-op",
@@ -100,22 +106,27 @@
     {
       "endpoint": "/api/applications",
       "method": "GET",
+      "input_headers": ["Authorization"],
+      "input_query_strings": ["jobId"],
       "output_encoding": "no-op",
       "backend": [{ "url_pattern": "/applications", "host": ["http://applications-service:3003"] }]
     },
     {
       "endpoint": "/api/applications",
       "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
       "backend": [{ "url_pattern": "/applications", "host": ["http://applications-service:3003"] }]
     },
     {
       "endpoint": "/api/applications/{applicationId}",
       "method": "GET",
+      "input_headers": ["Authorization"],
       "backend": [{ "url_pattern": "/applications/{applicationId}", "host": ["http://applications-service:3003"] }]
     },
     {
       "endpoint": "/api/applications/{applicationId}",
       "method": "PUT",
+      "input_headers": ["Authorization", "Content-Type"],
       "backend": [{ "url_pattern": "/applications/{applicationId}", "host": ["http://applications-service:3003"] }]
     }
   ]
