@@ -80,3 +80,6 @@ Essa fronteira pode ser substituída por endpoints de autenticação, vagas, usu
 npm run lint
 npm run build
 ```
+
+## Vídeo:
+www.youtube.com/watch?v=fGdOkCf0PlI
