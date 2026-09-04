@@ -37,13 +37,37 @@ O KrakenD, por padrão, espera que o backend devolva um objeto JSON (`{...}`) �
 
 A primeira tentativa de correção foi `"is_collection": true` no `backend`, mas isso faz o KrakenD **envolver** o array numa chave extra (`{"collection": [...]}`) em vez de devolvê-lo puro — quebra o contrato esperado pelo frontend de um jeito silencioso (sem erro HTTP, só um JSON no formato errado). A correção usada foi declarar `"output_encoding": "no-op"` no **endpoint** (não no backend): isso faz o KrakenD simplesmente repassar bytes-a-bytes a resposta do backend, sem tentar decodificá-la/reencodá-la — o array chega ao cliente exatamente como o `jobs-service` o devolveu. Qualquer novo endpoint que devolva uma lista (inclusive em `applications-service` quando for implementado) precisa dessa mesma configuração.
 
-## Debug
+## Mapeamento completo de rotas
 
-O nível de log está temporariamente em `DEBUG` (`telemetry/logging.level`) para facilitar o diagnóstico da integração com o `auth-service`. Volte para `INFO` quando o fluxo estiver estável, pra não poluir os logs em produção.
+Detalhe, rota a rota, de exatamente como cada entrada de `krakend.json` está configurada — não só o par endpoint/serviço (isso já está no README principal do projeto), mas os parâmetros que fazem cada rota funcionar corretamente através do gateway:
 
-## Status atual
+| Endpoint (gateway) | Método | `input_headers` | `input_query_strings` | `output_encoding` | Backend (`url_pattern` @ host) |
+|---|---|---|---|---|---|
+| `/api/auth/register` | POST | *(padrão)* | — | *(padrão: json)* | `/register` @ `auth-service:3001` |
+| `/api/auth/login` | POST | *(padrão)* | — | *(padrão: json)* | `/login` @ `auth-service:3001` |
+| `/api/auth/me` | GET | `Authorization` | — | *(padrão: json)* | `/me` @ `auth-service:3001` |
+| `/api/auth/me` | PUT | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/me` @ `auth-service:3001` |
+| `/api/auth/profile/candidate` | GET | `Authorization` | — | *(padrão: json)* | `/profile/candidate` @ `auth-service:3001` |
+| `/api/auth/profile/candidate` | PUT | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/profile/candidate` @ `auth-service:3001` |
+| `/api/auth/profile/company` | GET | `Authorization` | — | *(padrão: json)* | `/profile/company` @ `auth-service:3001` |
+| `/api/auth/profile/company` | PUT | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/profile/company` @ `auth-service:3001` |
+| `/api/auth/candidates/{candidateId}` | GET | `Authorization` | — | *(padrão: json)* | `/candidates/{candidateId}` @ `auth-service:3001` |
+| `/api/jobs` | GET | *(padrão)* | — | `no-op` | `/jobs` @ `jobs-service:3002` |
+| `/api/jobs` | POST | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/jobs` @ `jobs-service:3002` |
+| `/api/jobs/{jobId}` | GET | *(padrão)* | — | *(padrão: json)* | `/jobs/{jobId}` @ `jobs-service:3002` |
+| `/api/jobs/{jobId}` | PUT | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/jobs/{jobId}` @ `jobs-service:3002` |
+| `/api/jobs/{jobId}` | DELETE | `Authorization` | — | *(padrão: json)* | `/jobs/{jobId}` @ `jobs-service:3002` |
+| `/api/applications` | GET | `Authorization` | `jobId` | `no-op` | `/applications` @ `applications-service:3003` |
+| `/api/applications` | POST | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/applications` @ `applications-service:3003` |
+| `/api/applications/{applicationId}` | GET | `Authorization` | — | *(padrão: json)* | `/applications/{applicationId}` @ `applications-service:3003` |
+| `/api/applications/{applicationId}` | PUT | `Authorization`, `Content-Type` | — | *(padrão: json)* | `/applications/{applicationId}` @ `applications-service:3003` |
 
-`auth-service` e `jobs-service` já estão implementados e integrados ao `docker-compose.yaml` e ao gateway. `applications-service` ainda não possui implementação nem `Dockerfile`, por isso ainda não foi adicionado ao `docker-compose.yaml`; assim que for implementado e ganhar seu próprio `Dockerfile`, deve ser adicionado ao `docker-compose.yaml` com o nome de host e a porta usados aqui, para que o roteamento funcione.
+Pontos a observar ao adicionar uma nova rota:
+
+- **`input_query_strings`** é, assim como `input_headers`, uma lista exaustiva: se o endpoint aceitar mais de um filtro (ex.: paginação), todos precisam ser listados explicitamente, senão o KrakenD descarta o parâmetro antes de repassar ao backend.
+- Rotas com `{param}` no `url_pattern` casam **um único segmento** de path — não é possível usar `{param}` para capturar `/a/b/c` inteiro (limitação do KrakenD 2.x usada aqui).
+- `timeout` (global, `3000ms`) e `cache_ttl` (`0s`, ou seja, sem cache) valem para todas as rotas, pois não há `extra_config` de timeout/cache por endpoint neste projeto — uma rota que demore mais que 3s no backend recebe timeout do próprio gateway antes mesmo do backend responder.
+
 
 ## Subindo o gateway
 
