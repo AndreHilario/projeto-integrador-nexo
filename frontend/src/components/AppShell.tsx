@@ -4,6 +4,17 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { Logo } from './Logo'
 
+const candidateLinks = [
+  { to: '/vagas', label: 'Explorar vagas', icon: BriefcaseBusiness },
+  { to: '/candidaturas', label: 'Candidaturas', icon: LayoutDashboard },
+  { to: '/perfil', label: 'Perfil', icon: UserRound },
+]
+const companyLinks = [
+  { to: '/empresa', label: 'Visão geral', icon: LayoutDashboard },
+  { to: '/empresa/vagas/nova', label: 'Nova vaga', icon: BriefcaseBusiness },
+  { to: '/empresa/perfil', label: 'Empresa', icon: Building2 },
+]
+
 export function AppShell() {
   const { currentUser, logout } = useApp()
   const navigate = useNavigate()
@@ -28,16 +39,6 @@ export function AppShell() {
 
   if (!currentUser) return null
 
-  const candidateLinks = [
-    { to: '/vagas', label: 'Explorar vagas', icon: BriefcaseBusiness },
-    { to: '/candidaturas', label: 'Candidaturas', icon: LayoutDashboard },
-    { to: '/perfil', label: 'Perfil', icon: UserRound },
-  ]
-  const companyLinks = [
-    { to: '/empresa', label: 'Visão geral', icon: LayoutDashboard },
-    { to: '/empresa/vagas/nova', label: 'Nova vaga', icon: BriefcaseBusiness },
-    { to: '/empresa/perfil', label: 'Empresa', icon: Building2 },
-  ]
   const links = currentUser.role === 'candidate' ? candidateLinks : companyLinks
   const profilePath = currentUser.role === 'candidate' ? '/perfil' : '/empresa/perfil'
   const initials = currentUser.name.split(' ').map((word) => word[0]).slice(0, 2).join('')

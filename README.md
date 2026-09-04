@@ -66,3 +66,6 @@ Para remover também o volume de dados do banco:
 ```bash
 docker compose down -v
 ```
+
+## Vídeo:
+www.youtube.com/watch?v=fGdOkCf0PlI
