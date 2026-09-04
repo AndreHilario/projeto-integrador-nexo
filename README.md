@@ -10,6 +10,10 @@
 - MARIA HELENA GRACA LOPES
 - PALOMA FREDIANI VIEITZ GIL
 
+## Documentação
+
+Os objetivos do projeto estão detalhados no documento [PROJETO2026.docx.pdf](./docs/PROJETO2026.docx.pdf).
+
 ## Vídeo do projeto funcionando
 
 https://youtu.be/fGdOkCf0PlI
@@ -88,25 +92,47 @@ docker compose down -v
 
 ### Login
 
+![Login](./docs/login.png)
+
 ### Cadastro de candidato
+
+![Cadastro de candidato](./docs/Cadastro%20candidato.png)
 
 ### Cadastro de empresa
 
+![Cadastro de empresa](./docs/Cadastro%20empresa.png)
+
 ### Explorar vagas
+
+![Explorar vagas](./docs/Explorar%20vagas.png)
 
 ### Detalhe da vaga
 
+![Detalhe da vaga](./docs/Detalhes%20vaga.png)
+
 ### Candidaturas
+
+![Candidaturas](./docs/Candidaturas.png)
 
 ### Perfil do candidato
 
+![Perfil do candidato](./docs/PerfilCandidato.png)
+
 ### Painel da empresa
+
+![Painel da empresa](./docs/Painel%20empresa.png)
 
 ### Nova vaga (empresa)
 
+![Nova vaga (empresa)](./docs/Nova%20vaga.png)
+
 ### Detalhe da vaga (empresa)
 
+![Detalhe da vaga (empresa)](./docs/Detalhes%20da%20va%20nova.png)
+
 ### Perfil da empresa
+
+![Perfil da empresa](./docs/Perfil%20da%20empresa.png)
 
 ## Backend
 
