@@ -1,84 +1,70 @@
-# Nexo
+# Projeto Integrador Nexo
 
-MVP de uma plataforma digital de intermediação de vagas e candidatos. O frontend cobre as jornadas de candidato e empresa com dados mockados persistidos em `localStorage`.
+## Executando com Docker Compose
 
-## Executando
+Este projeto usa Docker Compose para subir os seguintes serviços:
 
-```bash
-npm install
-npm run dev
-```
+- **db**: banco de dados PostgreSQL 16, exposto na porta `5432`, com os scripts de inicialização em `Backend/dbfiles` e dados persistidos no volume `db_data`.
+- **frontend**: aplicação frontend, construída a partir de `frontend/Dockerfile` e exposta na porta `8080`.
+- **krakend**: API Gateway que centraliza o acesso aos microsserviços de backend, exposto na porta `8000`. Configuração em `Backend/krakend/krakend.json` (veja `Backend/krakend/README.md`).
 
-Para validar a versão de produção:
+### Pré-requisitos
 
-```bash
-npm run build
-npm run preview
-```
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/) (já incluído no Docker Desktop)
 
-## Acessos de demonstração
+### Subir os containers
 
-### Candidato
-
-- E-mail: `lucas@nexo.com`
-- Senha: `123456`
-
-### Empresa
-
-- E-mail: `mariana@auroratech.com`
-- Senha: `123456`
-
-As credenciais são preenchidas automaticamente ao selecionar o perfil na tela de login.
-
-## Fluxos disponíveis
-
-- Cadastro e login de candidato e empresa
-- Perfil profissional com currículo, competências e preferências
-- Feed, busca e filtros de vagas
-- Detalhes e envio de candidatura
-- Acompanhamento das etapas da candidatura
-- Painel da empresa com métricas e vagas publicadas
-- Criação e edição de vagas
-- Pausa, reabertura e encerramento de vagas
-- Ranking de candidatos por compatibilidade
-- Atualização da etapa de cada candidato
-- Persistência local de todas as ações
-
-## Estrutura
-
-```text
-src/
-  components/       componentes compartilhados
-  config/           configuração da fonte de dados
-  context/          estado e ações da aplicação
-  data/             base inicial mockada
-  pages/            telas por jornada
-  services/         providers local e HTTP
-  types/            contratos do domínio
-  utils/            formatação e rótulos
-```
-
-## Troca para API real
-
-Copie `.env.example` para `.env` e altere:
-
-```env
-VITE_DATA_SOURCE=api
-VITE_API_BASE_URL=http://localhost:3000/api
-```
-
-O provider HTTP está em `src/services/dataProvider.ts`. O contrato atual espera:
-
-- `GET /state` para carregar o estado
-- `PUT /state` para persistir o estado
-
-Essa fronteira pode ser substituída por endpoints de autenticação, vagas, usuários e candidaturas sem alterar os componentes de interface.
-
-## Qualidade
+Na raiz do projeto, execute:
 
 ```bash
-npm run lint
-npm run build
+docker compose up -d
+```
+
+O comando irá:
+
+1. Construir a imagem do frontend (`frontend/Dockerfile`).
+2. Baixar a imagem do PostgreSQL 16.
+3. Subir os dois serviços em segundo plano.
+
+### Acessando os serviços
+
+- Frontend: [http://localhost:8080](http://localhost:8080)
+- API Gateway (KrakenD): [http://localhost:8000](http://localhost:8000)
+- Banco de dados: `localhost:5432`
+  - Usuário: `nexo`
+  - Senha: `nexo`
+  - Database: `nexo`
+
+### Ver logs
+
+```bash
+docker compose logs -f
+```
+
+Ou de um serviço específico:
+
+```bash
+docker compose logs -f frontend
+docker compose logs -f db
+```
+
+### Reconstruir imagens após alterações
+
+```bash
+docker compose up -d --build
+```
+
+### Parar os containers
+
+```bash
+docker compose down
+```
+
+Para remover também o volume de dados do banco:
+
+```bash
+docker compose down -v
 ```
 
 ## Vídeo:
