@@ -16,7 +16,8 @@ Os objetivos do projeto estão detalhados no documento [PROJETO2026.docx.pdf](./
 
 ## Vídeo do projeto funcionando
 
-https://youtu.be/fGdOkCf0PlI
+[PI_NEXO.mp4](./PI_NEXO.mp4) - 1:09 min
+https://youtu.be/fGdOkCf0PlI (vídeo extendido - 6 min)
 
 ## Executando com Docker Compose
 
